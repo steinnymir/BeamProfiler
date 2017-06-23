@@ -6,6 +6,7 @@ Created on Fri June  23 09:30:00 2017
 """
 
 import sys
+import numpy as np
 
 import cv2
 import pyqtgraph as pg
@@ -16,7 +17,9 @@ class CamView(qw.QWidget):
 
     # Parameters:
 
-    CAMERA = 1
+    CAMERA = 2
+    AVERAGES = 10
+
 
     def __init__(self):
         super(CamView, self).__init__()
@@ -29,21 +32,72 @@ class CamView(qw.QWidget):
         layout.addWidget(self.camWindow, 0,0,1,1)
 
         self.timer = qc.QTimer()
-        self.timer.setInterval(20)
+        self.timer.setInterval(200)
         self.timer.timeout.connect(self.on_timer)
         self.timer.start()
+
+        self.frames = []
+        self.frame = np.array([])
+        self.frame_number = 0
+        self.fig = np.array([])
 
         self.cam = cv2.VideoCapture(self.CAMERA)
 
         self.show()
 
+    # def on_timer(self):  # todo: implement averages, this doesnt work
+    #     ret, self.frame = self.cam.read()
+    #     if self.frame_number < self.AVERAGES:
+    #         self.frame_number +=1
+    #         self.frames.append(self.convert_frame(self.frame))
+    #     else:
+    #         self.frame_number = 0
+    #         for i, j in range(len(self.frame[0])), range(len(self.frame[0][0])):
+    #             r = 0
+    #             g = 0
+    #             b = 0
+    #
+    #             for n in range(self.AVERAGES):
+    #                 r += self.frame[n][i][j][0]
+    #                 g += self.frame[n][i][j][1]
+    #                 b += self.frame[n][i][j][2]
+    #             r /= self.AVERAGES
+    #             b /= self.AVERAGES
+    #             g /= self.AVERAGES
+    #             self.fig[i][j] = np.array([r,g,b], dtype='unit8')
+    #         self.camWindow.setImage(self.fig,
+    #                                 axes={'x': 1, 'y': 0, 'c': 2})  # transpose the matrix to rotate correctly the image
+    #         self.frames = []
+
     def on_timer(self):
         self.refresh_frame()
-
     def refresh_frame(self):
-        ret, frame = self.cam.read()
-        frame = self.convert_frame(frame)
-        self.camWindow.setImage(frame, axes={'x':1, 'y':0, 'c':2})  # transpose the matrix to rotate correctly the image
+        average = False
+        frames = []
+        if average:
+            avgs = 50
+            fig= np.array([])
+            for n in range(avgs):
+                ret, frame = self.cam.read()
+                frames.append(self.convert_frame(frame))
+            for i, j in range(len(frame[0])), range(len(frame[0][0])):
+                r = 0
+                g = 0
+                b = 0
+
+                for n in range(avgs):
+                    r += frame[n][i][j][0]
+                    g += frame[n][i][j][1]
+                    b += frame[n][i][j][2]
+                r /= avgs
+                b /= avgs
+                g /= avgs
+                fig[i][j] = np.array([r,g,b], dtype='unit8')
+        else:
+            ret, frame = self.cam.read()
+            frame = self.convert_frame(frame)
+            fig = frame
+        self.camWindow.setImage(fig, axes={'x':1, 'y':0, 'c':2})  # transpose the matrix to rotate correctly the image
         # self.camWindow.setPredefinedGradient('thermal')
 
 
