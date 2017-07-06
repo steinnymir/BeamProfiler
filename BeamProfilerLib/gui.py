@@ -7,6 +7,7 @@ Created on Fri June  23 09:30:00 2017
 
 import sys
 import numpy as np
+from scipy import misc
 
 import cv2
 import pyqtgraph as pg
@@ -17,8 +18,9 @@ class CamView(qw.QWidget):
 
     # Parameters:
 
-    CAMERA = 2
-    AVERAGES = 10
+    CAMERA = 1
+
+    AVERAGES = 1
 
 
     def __init__(self):
@@ -28,75 +30,69 @@ class CamView(qw.QWidget):
         layout.setSpacing(10)
         self.setLayout(layout)
 
+        self.gauss_img = misc.imread('c://py_code//BeamProfiler//test_data//gauss01.png')
+
         self.camWindow = pg.ImageView()
-        layout.addWidget(self.camWindow, 0,0,1,1)
+        layout.addWidget(self.camWindow, 0, 0, 2, 3)
+        self.camWindow.setImage(self.gauss_img)
+
+        self.start_btn = qw.QPushButton('Start Video')
+        layout.addWidget(self.start_btn, 1, 0, 1, 1)
+        self.start_btn.setCheckable(True)
+        self.start_btn.clicked.connect(self.start_acquisition)
+
+        self.gauss_btn = qw.QPushButton('Show Gaussian')
+        layout.addWidget(self.gauss_btn, 1, 1, 1, 1)
+        # self.gauss_btn.setCheckable(True)
+        self.gauss_btn.clicked.connect(self.show_gaussian)
 
         self.timer = qc.QTimer()
-        self.timer.setInterval(200)
+        self.timer.setInterval(1)
         self.timer.timeout.connect(self.on_timer)
         self.timer.start()
-
-        self.frames = []
-        self.frame = np.array([])
-        self.frame_number = 0
-        self.fig = np.array([])
 
         self.cam = cv2.VideoCapture(self.CAMERA)
 
         self.show()
 
-    # def on_timer(self):  # todo: implement averages, this doesnt work
-    #     ret, self.frame = self.cam.read()
-    #     if self.frame_number < self.AVERAGES:
-    #         self.frame_number +=1
-    #         self.frames.append(self.convert_frame(self.frame))
-    #     else:
-    #         self.frame_number = 0
-    #         for i, j in range(len(self.frame[0])), range(len(self.frame[0][0])):
-    #             r = 0
-    #             g = 0
-    #             b = 0
-    #
-    #             for n in range(self.AVERAGES):
-    #                 r += self.frame[n][i][j][0]
-    #                 g += self.frame[n][i][j][1]
-    #                 b += self.frame[n][i][j][2]
-    #             r /= self.AVERAGES
-    #             b /= self.AVERAGES
-    #             g /= self.AVERAGES
-    #             self.fig[i][j] = np.array([r,g,b], dtype='unit8')
-    #         self.camWindow.setImage(self.fig,
-    #                                 axes={'x': 1, 'y': 0, 'c': 2})  # transpose the matrix to rotate correctly the image
-    #         self.frames = []
-
     def on_timer(self):
-        self.refresh_frame()
+        if self.start_btn.isChecked():
+            self.refresh_frame()
+
+    def start_acquisition(self):
+        if self.start_btn.isChecked():
+            self.start_btn.setText('Stop Video')
+        else:
+            self.start_btn.setText('Start Video')
+
+    def show_gaussian(self):
+        try:
+            self.camWindow.setImage(self.gauss_img)
+        except FileNotFoundError:
+            print('file not found')
+
+
+    def get_frame_average(self, avg_n):
+        _, f = self.cam.read()
+        avg_img = np.float32(f)
+        n = 0
+        while n in range(avg_n):
+            n += 1
+            _, f = self.cam.read()
+            cv2.accumulateWeighted(f, avg_img, 0.1)
+
+        return avg_img
+
+
     def refresh_frame(self):
-        average = False
+        average = True
         frames = []
         if average:
-            avgs = 50
-            fig= np.array([])
-            for n in range(avgs):
-                ret, frame = self.cam.read()
-                frames.append(self.convert_frame(frame))
-            for i, j in range(len(frame[0])), range(len(frame[0][0])):
-                r = 0
-                g = 0
-                b = 0
-
-                for n in range(avgs):
-                    r += frame[n][i][j][0]
-                    g += frame[n][i][j][1]
-                    b += frame[n][i][j][2]
-                r /= avgs
-                b /= avgs
-                g /= avgs
-                fig[i][j] = np.array([r,g,b], dtype='unit8')
+            frame = self.get_frame_average(self.AVERAGES)
         else:
             ret, frame = self.cam.read()
-            frame = self.convert_frame(frame)
-            fig = frame
+        frame = self.convert_frame(frame)
+        fig = frame
         self.camWindow.setImage(fig, axes={'x':1, 'y':0, 'c':2})  # transpose the matrix to rotate correctly the image
         # self.camWindow.setPredefinedGradient('thermal')
 
@@ -107,7 +103,15 @@ class CamView(qw.QWidget):
 
         return img
 
+    def keyPressEvent(self, event):
+        """Close application from escape key.
 
+        results in QMessageBox dialog from closeEvent, good but how/why?
+        """
+        if event.key() == qc.Qt.Key_Escape:
+            cv2.destroyAllWindows()
+            self.cam.release()
+            self.close()
 
     def run_video(self):
 
@@ -130,10 +134,6 @@ class CamView(qw.QWidget):
         # vb.addItem(img)
         # vb.setRange(qc.QRectF(0, 0, 512, 512))
 
-def plot_image():
-    cam = cv2.VideoCapture(0)
-    # print(type(cam.read()))
-    ret_val, img = cam.read()
 
 def show_webcam():
     cam = cv2.VideoCapture(1)
