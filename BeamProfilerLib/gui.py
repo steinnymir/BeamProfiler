@@ -18,7 +18,7 @@ class CamView(qw.QWidget):
 
     # Parameters:
 
-    CAMERA = 0
+    CAMERA = 1
 
     AVERAGES = 1
 
@@ -30,7 +30,7 @@ class CamView(qw.QWidget):
         layout.setSpacing(10)
         self.setLayout(layout)
 
-        self.gauss_img = misc.imread('test_data//gauss01.png')
+        self.gauss_img = misc.imread('c://py_code//BeamProfiler//test_data//gauss01.png')
 
         self.camWindow = pg.ImageView()
         layout.addWidget(self.camWindow, 0, 0, 2, 3)
