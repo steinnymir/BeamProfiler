@@ -84,7 +84,7 @@ def createData():
     ax.contour(x, y, data_fitted.reshape(201, 201), 8, colors='w')
     plt.show()
 
-if __name__=="__main__":
+if __name__== "__main__":
 
 #    main()
 
