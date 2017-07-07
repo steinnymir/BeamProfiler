@@ -10,6 +10,10 @@ import sys
 import cv2
 import pyqtgraph as pg
 from PyQt5 import QtWidgets as qw
+from scipy import misc
+import scipy.optimize as opt
+import numpy as np
+import matplotlib.pyplot as plt
 
 from BeamProfilerLib.gui import CamView
 
@@ -36,13 +40,18 @@ class MainApp(qw.QMainWindow):
         self.layout.addWidget(self.centralWidget, 0, 0)
         self.setCentralWidget(self.centralWidget)
 
-        self.statusBar().showMessage('Message in statusbar.')
+        self.statusBar = qw.QStatusBar()
+        self.setStatusBar(self.statusBar)
+        self.statusBar.addWidget(qw.QLabel("message left 1"))
+
 
         self.show()
-
 
 
 
 if __name__=="__main__":
 
     main()
+
+    # gauss_img = misc.imread('c://py_code//BeamProfiler//test_data//gauss01.png')
+    # createData()
