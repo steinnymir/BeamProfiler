@@ -8,11 +8,50 @@ Created on Fri June  23 09:30:00 2017
 import sys
 import numpy as np
 from scipy import misc
-
+import matplotlib.pyplot as plt
+from matplotlib import cm
 import cv2
 import pyqtgraph as pg
 from PyQt5 import QtWidgets as qw, QtCore as qc, QtGui as qg
 
+
+def main():
+    img = get_frame()
+    # y_len = len(img)
+    # x_len = len(img[0])
+
+    # mono_img = np.ones([y_len,x_len])
+    mono_img = np.ones([480,640])
+    for i in range(480):
+        for j in range(640):
+            mono_img[i][j] = img.item(i,j,0)
+    ax = plt.subplot(111)
+
+    ax.pcolorfast(mono_img, cmap='RdBu')
+    plt.show()
+   # show_webcam()
+
+def show_webcam():
+    cam = cv2.VideoCapture(1)
+    while True:
+        ret_val, img = cam.read()
+
+        y_len = len(img)
+        x_len = len(img[0])
+        mono_img = np.ones([y_len,x_len])
+        for i in range(y_len):
+            for j in range(x_len):
+                mono_img[i][j] = img.item(i,j,1)
+        cv2.imshow('logitech webcam', img)
+        if cv2.waitKey(1) == 27:
+            break
+
+
+
+def get_frame():
+    cam = cv2.VideoCapture(1)
+    ret_val, img = cam.read()
+    return img
 class CamView(qw.QWidget):
     """ main Widget showing simple video from camera."""
 
@@ -35,6 +74,12 @@ class CamView(qw.QWidget):
         self.camWindow = pg.ImageView()
         layout.addWidget(self.camWindow, 0, 0, 2, 3)
         self.camWindow.setImage(self.gauss_img)
+        colors = [
+            (0, 0, 0),
+            (255, 0, 0)
+        ]
+        cmap = pg.ColorMap(pos=np.linspace(0.0, 1.0, 2), color=colors)
+        self.camWindow.setColorMap(cmap)
 
         self.start_btn = qw.QPushButton('Start Video')
         layout.addWidget(self.start_btn, 1, 0, 1, 1)
@@ -56,7 +101,7 @@ class CamView(qw.QWidget):
         self.show()
 
     def on_timer(self):
-        if self.start_btn.isChecked():
+        if not self.start_btn.isChecked():
             self.refresh_frame()
 
     def start_acquisition(self):
@@ -71,7 +116,6 @@ class CamView(qw.QWidget):
         except FileNotFoundError:
             print('file not found')
 
-
     def get_frame_average(self, avg_n):
         _, f = self.cam.read()
         avg_img = np.float32(f)
@@ -83,7 +127,6 @@ class CamView(qw.QWidget):
 
         return avg_img
 
-
     def refresh_frame(self):
         average = True
         frames = []
@@ -91,14 +134,45 @@ class CamView(qw.QWidget):
             frame = self.get_frame_average(self.AVERAGES)
         else:
             ret, frame = self.cam.read()
-        frame = self.convert_frame(frame)
-        fig = frame
-        self.camWindow.setImage(fig, axes={'x':1, 'y':0, 'c':2})  # transpose the matrix to rotate correctly the image
+        frame = self.bgr2rgb(frame)
+        fig = self.monochromatize(frame)
+        self.camWindow.setImage(fig, axes={'x':1, 'y':0})  # transpose the matrix to rotate correctly the image
         # self.camWindow.setPredefinedGradient('thermal')
 
+    @staticmethod
+    def monochromatize(img, size=[480,640], color='all'):
+        """
+
+        :param img: np.array
+            np array from camera, as x, y, z, with z a tuple of 3 representing rgb color
+        :param color: str
+            determine which color to isolate:
+            r, g, b, isolate red, green or blue, all gives sum of all
+        :return: np.array
+            2D array of pixels
+        """
+        mono_img = np.ones(size)
+
+        if color == 'all':
+            for i in range(size[0]):
+                for j in range(size[1]):
+                    mono_img[i][j] = img.item(i,j,2) + img.item(i,j,1) + img.item(i,j,0)
+        elif color == 'r':
+            for i in range(size[0]):
+                for j in range(size[1]):
+                    mono_img[i][j] = img.item(i,j,2)
+        elif color == 'g':
+            for i in range(size[0]):
+                for j in range(size[1]):
+                    mono_img[i][j] = img.item(i,j,1)
+        elif color == 'b':
+            for i in range(size[0]):
+                for j in range(size[1]):
+                    mono_img[i][j] = img.item(i,j,0)
+        return mono_img
 
     @staticmethod
-    def convert_frame(img):
+    def bgr2rgb(img):
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
         return img
@@ -118,7 +192,7 @@ class CamView(qw.QWidget):
         vid = cv2.VideoCapture(self.CAMERA)
         ret, frame = vid.read()
         while ret:
-            Qimg = self.convert_frame(frame)
+            Qimg = self.bgr2rgb(frame)
             self.camWindow.setImage(Qimg)
             ret, frame = vid.read()
             qw.QApplication.processEvents()
@@ -126,21 +200,5 @@ class CamView(qw.QWidget):
                 break
 
 
-
-        # vb = pg.ViewBox()
-        # self.graphicsView.setCentralItem(vb)
-        # vb.setAspectLocked()
-        # img = pg.ImageItem()
-        # vb.addItem(img)
-        # vb.setRange(qc.QRectF(0, 0, 512, 512))
-
-
-def show_webcam():
-    cam = cv2.VideoCapture(1)
-    while True:
-        ret_val, img = cam.read()
-
-        print(ret_val)
-        cv2.imshow('logitech webcam', img)
-        if cv2.waitKey(1) == 27:
-            break
+if __name__ == '__main__':
+    main()
