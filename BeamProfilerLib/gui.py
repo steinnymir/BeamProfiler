@@ -14,8 +14,11 @@ import cv2
 import pyqtgraph as pg
 from PyQt5 import QtWidgets as qw, QtCore as qc, QtGui as qg
 import time
+import VideoCapture
 
 def main():
+
+
     # img = get_frame()
     # # y_len = len(img)
     # # x_len = len(img[0])
@@ -29,11 +32,21 @@ def main():
     #
     # ax.pcolorfast(mono_img, cmap='RdBu')
     # plt.show()
-   show_webcam()
+
+    print(get_devicelist())
+
+
 
 
 def show_webcam():
+    temp_name = VideoCapture.Device(2).getDisplayName()
+    name = temp_name
+    del temp_name
+    print(name)
     cam = cv2.VideoCapture(1)
+
+    # cam = VideoCapture.Device(1)
+
     while True:
         ret_val, img = cam.read()
 
@@ -72,8 +85,6 @@ class CamView(qw.QWidget):
         layout.setSpacing(10)
         self.setLayout(layout)
 
-        self.gauss_img = misc.imread('c://py_code//BeamProfiler//test_data//gauss01.png')
-
         self.camWindow = pg.ImageView()
         layout.addWidget(self.camWindow, 0, 2, 3, 4)
         self.camWindow.setImage(self.gauss_img)
@@ -93,7 +104,8 @@ class CamView(qw.QWidget):
 
         # self.avg_input = qw.QTextEdit()
         # layout.addWidget(self.avg_input, 1, 0,1,1)
-
+        self.devices = {}
+        self.get_devicelist()
 
 
         self.fps_display = qw.QLabel('0')
@@ -114,19 +126,23 @@ class CamView(qw.QWidget):
 
         self.show()
 
+    @qc.pyqtSlot()
     def on_timer(self):
         if not self.start_btn.isChecked():
             # self.AVERAGES = self.avg_input.text()
             self.refresh_frame()
             self.fps_display.setText('      FPS: {0:3.1F}'.format(self.fps))
 
+    @qc.pyqtSlot()
     def start_acquisition(self):
         if self.start_btn.isChecked():
             self.start_btn.setText('Stop Video')
         else:
             self.start_btn.setText('Start Video')
 
+    @qc.pyqtSlot()
     def show_gaussian(self):
+        self.gauss_img = misc.imread('c://py_code//BeamProfiler//test_data//gauss01.png')
         try:
             self.camWindow.setImage(self.gauss_img)
         except FileNotFoundError:
@@ -151,18 +167,58 @@ class CamView(qw.QWidget):
             frame = self.get_frame_average(self.AVERAGES)
         else:
             ret, frame = self.cam.read()
+
         if color == 'all':
             frame = self.bgr2rgb(frame)
             self.camWindow.setImage(frame, axes={'x': 1, 'y': 0, 'c':2})  # transpose the matrix to rotate correctly the image
         else:
-            fig = self.monochromatize(frame, color=color)
+            fig = self.get_intensity_array(frame, color=color)
             self.camWindow.setImage(fig, axes={'x':1, 'y':0})  # transpose the matrix to rotate correctly the image
+
         self.fps = (1 / (time.time() - t_0 ))
 
-    @staticmethod
-    def monochromatize(img, size=CAM_RESOLUTION, color='all'):
-        """
 
+
+    @staticmethod
+    def get_devicelist():
+        """ Returns a dictionary of device names with corresponding port value and max resolution"""
+        try:
+            from VideoCapture import Device
+            useVC = True
+        except ImportError:
+            useVC = False
+            print('VideoCapture is not correctly installed. No device name can be obtained')
+        devices = {}
+        for i in range(10):
+            try:
+                import vidcap
+                if useVC:
+                    dev = Device(i)
+                    dev_name = dev.getDisplayName()
+                    devices[dev_name] = {'port': i}
+                    del dev
+                else:
+                    dev_name = 'camera{}'.format(i)
+
+                devices[dev_name] = {}
+                cam = cv2.VideoCapture(i)
+                cam.set(cv2.CAP_PROP_FRAME_WIDTH, 5000)  # force maximum resolution by overshooting
+                cam.set(cv2.CAP_PROP_FRAME_HEIGHT, 5000)  # force maximum resolution by overshooting
+                w = cam.get(cv2.CAP_PROP_FRAME_WIDTH)
+                h = cam.get(cv2.CAP_PROP_FRAME_HEIGHT)
+                devices[dev_name]['resolution'] = [w, h]
+                devices[dev_name]['port'] = i
+                del cam
+            except vidcap.error:
+                break
+        return devices
+
+
+
+    @staticmethod
+    def get_intensity_array(img, size=CAM_RESOLUTION, color='all'):
+        """
+            Reshape input image from RGB to single value per pixel.
         :param img: np.array
             np array from camera, as x, y, z, with z a tuple of 3 representing rgb color
         :param color: str

@@ -22,7 +22,7 @@ def main():
 
     app = qw.QApplication(sys.argv)
     w = MainApp()
-    w.setGeometry(300, 100, 640, 480)
+    # w.setGeometry(300, 100, 640, 480)
     w.show()
     app.exec_()
 
