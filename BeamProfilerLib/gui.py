@@ -15,49 +15,59 @@ import pyqtgraph as pg
 from PyQt5 import QtWidgets as qw, QtCore as qc, QtGui as qg
 import time
 import VideoCapture
+import pickle
 
 def main():
 
-
-    # img = get_frame()
-    # # y_len = len(img)
-    # # x_len = len(img[0])
-    #
-    # # mono_img = np.ones([y_len,x_len])
-    # mono_img = np.ones([480,640])
-    # for i in range(480):
-    #     for j in range(640):
-    #         mono_img[i][j] = img.item(i,j,0)
-    # ax = plt.subplot(111)
-    #
-    # ax.pcolorfast(mono_img, cmap='RdBu')
-    # plt.show()
-
     print(get_devicelist())
+    show_webcam(0)
 
 
+def get_devicelist():
+    """ Returns a dictionary of device names with corresponding port value and max resolution"""
+    try:
+        from VideoCapture import Device
+        useVC = True
+    except ImportError:
+        useVC = False
+        print('VideoCapture is not correctly installed. No device name can be obtained')
+    devices = {}
+    for i in range(10):
+        try:
+            import vidcap
+            if useVC:
+                dev = Device(i)
+                dev_name = dev.getDisplayName()
+                devices[dev_name] = {'port': i}
+                del dev
+            else:
+                dev_name = 'camera{}'.format(i)
 
+            devices[dev_name] = {}
+            cam = cv2.VideoCapture(i)
+            # cam.set(cv2.CAP_PROP_FRAME_WIDTH, 5000)  # force maximum resolution by overshooting
+            # cam.set(cv2.CAP_PROP_FRAME_HEIGHT, 5000)  # force maximum resolution by overshooting
+            w = cam.get(cv2.CAP_PROP_FRAME_WIDTH)
+            h = cam.get(cv2.CAP_PROP_FRAME_HEIGHT)
+            devices[dev_name]['resolution'] = [w, h]
+            devices[dev_name]['port'] = i
+            del cam
+        except vidcap.error:
+            break
+    return devices
 
-def show_webcam():
-    temp_name = VideoCapture.Device(2).getDisplayName()
-    name = temp_name
-    del temp_name
-    print(name)
-    cam = cv2.VideoCapture(1)
-
+def show_webcam(camnum):
+    # temp_name = VideoCapture.Device(1).getDisplayName()
+    # name = temp_name
+    # del temp_name
+    cam = cv2.VideoCapture(camnum)
+    cam.set(cv2.CAP_PROP_FRAME_WIDTH, 5000)  # force maximum resolution by overshooting
+    cam.set(cv2.CAP_PROP_FRAME_HEIGHT, 5000)  # force maximum resolution by overshooting
     # cam = VideoCapture.Device(1)
 
     while True:
         ret_val, img = cam.read()
-
-        y_len = len(img)
-        x_len = len(img[0])
-        mono_img = np.ones([y_len,x_len])
-        # for i in range(y_len):
-        #     for j in range(x_len):
-        #         mono_img[i][j] = img.item(i,j,1)
-        mono_img = (img[:,:,0] + img[:,:,1] + img[:,:,2])
-        cv2.imshow('logitech webcam', mono_img)
+        cv2.imshow('logitech webcam', img)
         if cv2.waitKey(1) == 27:
             break
 
@@ -85,12 +95,12 @@ class CamView(qw.QWidget):
         layout.setSpacing(10)
         self.setLayout(layout)
 
-        self.camWindow = pg.ImageView()
-        layout.addWidget(self.camWindow, 0, 2, 3, 4)
-        self.camWindow.setImage(self.gauss_img)
-        colors = [(0, 0, 0),(255, 255, 255)]
-        cmap = pg.ColorMap(pos=np.linspace(0.0, 1.0, 2), color=colors)
-        self.camWindow.setColorMap(cmap)
+        self.camWindow = pg.GraphicsView()
+        layout.addWidget(self.camWindow, 0, 2, 10, 10)
+        # self.camWindow.setImage(self.gauss_img)
+        # colors = [(0, 0, 0),(255, 255, 255)]
+        # cmap = pg.ColorMap(pos=np.linspace(0.0, 1.0, 2), color=colors)
+        # self.camWindow.setColorMap(cmap)
 
         self.start_btn = qw.QPushButton('Start Video')
         layout.addWidget(self.start_btn, 0, 0)
@@ -100,10 +110,10 @@ class CamView(qw.QWidget):
         self.gauss_btn = qw.QPushButton('Show Gaussian')
         layout.addWidget(self.gauss_btn, 2, 0)
         # self.gauss_btn.setCheckable(True)
-        self.gauss_btn.clicked.connect(self.show_gaussian)
+        # self.gauss_btn.clicked.connect(self.save_picture)
 
-        # self.avg_input = qw.QTextEdit()
-        # layout.addWidget(self.avg_input, 1, 0,1,1)
+        self.save_name = qw.QTextEdit()
+        layout.addWidget(self.save_name, 1, 0)
         self.devices = {}
         self.get_devicelist()
 
@@ -147,6 +157,14 @@ class CamView(qw.QWidget):
             self.camWindow.setImage(self.gauss_img)
         except FileNotFoundError:
             print('file not found')
+
+    # @qc.pyqtSlot()
+    # def save_picture(self):
+    #     img = self.get_frame_average(10)
+    #     savename = self.save_name.text()
+    #
+    #     file = open('e:/' + savename + '.obj', 'wb')
+    #     pickle.dump(img,file)
 
     def get_frame_average(self, avg_n):
         _, f = self.cam.read()
