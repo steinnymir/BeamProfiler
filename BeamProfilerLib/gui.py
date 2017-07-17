@@ -98,8 +98,8 @@ def get_frame(camera, color='RGB'):
 
     """
     ret_val, img = camera.read()
-    set_pixel_coloring(img, color=color)
-    return img
+    img_recolored = set_pixel_coloring(img, color=color)
+    return img_recolored
 
 
 def get_devicelist():
@@ -144,8 +144,8 @@ def recolor_bgr2rgb(img):
     :return: np.array
         np array from camera, as x, y, z, with z a tuple of 3 representing RGB color
     """
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    return img
+    img_new = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    return img_new
 
 
 def get_weighted_frame(camera, alpha, color='RGB'):
@@ -193,12 +193,17 @@ def set_pixel_coloring(img,color='RGB'):
     :return: np.array
         array of pixels with data as defined by color method.
     """
+    h = np.size(img, 0)
+    w = np.size(img, 1)
+    mono_img = np.float32([h,w])
+
     if color == 'BGR':
         return img
     elif color == 'RGB':
-        avg_img = recolor_bgr2rgb(img)
-        return avg_img
+        img = recolor_bgr2rgb(img)
+        return img
     elif color == 'avg':
+
         mono_img = (img[:, :, 0] + img[:, :, 1] + img[:, :, 2]) / 3
     elif color == 'r':
         mono_img = img[:, :, 2]
