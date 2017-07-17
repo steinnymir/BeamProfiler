@@ -9,13 +9,16 @@ import sys
 
 import cv2
 import pyqtgraph as pg
-from PyQt5 import QtWidgets as qw
+from PyQt5 import QtWidgets as qw, uic
+
 from scipy import misc
 import scipy.optimize as opt
 import numpy as np
 import matplotlib.pyplot as plt
 
 from BeamProfilerLib.gui import CamView
+
+Ui_MainWindow, QtBaseClass = uic.loadUiType('BeamProfilerUI.ui')
 
 
 def main():
@@ -27,23 +30,27 @@ def main():
     app.exec_()
 
 
-
-class MainApp(qw.QMainWindow):
+class MainApp(qw.QMainWindow, ):
 
     def __init__(self):
-        super().__init__()
+        super(MainApp,self).__init__()
+        self.ui = Ui_MainWindow()
 
-        self.layout = qw.QGridLayout()  # create a grid for subWidgets
-        self.layout.setSpacing(10)
-        self.setLayout(self.layout)
-
-        self.centralWidget = CamView()
-        self.layout.addWidget(self.centralWidget, 0, 0)
-        self.setCentralWidget(self.centralWidget)
-
-        self.statusBar = qw.QStatusBar()
-        self.setStatusBar(self.statusBar)
-        self.statusBar.addWidget(qw.QLabel("message left 1"))
+        self.ui.setupUI(self)
+        self.show()
+        #
+        #
+        # self.layout = qw.QGridLayout()  # create a grid for subWidgets
+        # self.layout.setSpacing(10)
+        # self.setLayout(self.layout)
+        #
+        # self.centralWidget = CamView()
+        # self.layout.addWidget(self.centralWidget, 0, 0)
+        # self.setCentralWidget(self.centralWidget)
+        #
+        # self.statusBar = qw.QStatusBar()
+        # self.setStatusBar(self.statusBar)
+        # self.statusBar.addWidget(qw.QLabel("message left 1"))
 
 
         self.show()
@@ -52,4 +59,7 @@ class MainApp(qw.QMainWindow):
 
 if __name__== "__main__":
 
-    main()
+    # main()
+    ui_file = 'C:\py_code\BeamProfiler\BeamProfilerLib\BeamProfilerUI.ui'
+    py_file = open('C:\py_code\BeamProfiler\BeamProfilerLib\BeamProfilerUI.py', 'w')
+    uic.compileUi(ui_file, py_file, execute=True)

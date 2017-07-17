@@ -19,6 +19,33 @@ import VideoCapture
 def main():
 
 
+    cam = cv2.VideoCapture(1)
+    fig = plt.figure('color channels')
+    ax1 = fig.add_subplot(221)
+    ax2 = fig.add_subplot(222)
+    ax3 = fig.add_subplot(223)
+    ax4 = fig.add_subplot(224)
+    r, frame = get_weighted_frame(cam, 0.5, color='r')
+    pg.image(frame)
+    # while True:
+    #     r, frame = get_weighted_frame(cam, 0.5,color='r')
+    #     # ax1.pcolorfast(r)
+    #     g, _ = get_weighted_frame(cam, 0.5, color='g')
+    #     # ax2.pcolorfast(g)
+    #     b, _ = get_weighted_frame(cam, 0.5, color='b')
+    #     # ax3.pcolorfast(b)
+    #     avg, _ = get_weighted_frame(cam, 0.5, color='avg')
+    #     # ax4.pcolorfast(avg)
+    #     # BGR = get_weighted_frame(cam, 0.5, color='BGR')
+    #     # RGB = get_weighted_frame(cam, 0.5, color='RGB')
+    #     canvas.setImage(r)
+
+        # cv2.imshow('color BGR',BGR)
+        # cv2.imshow('frame',frame)
+        # if cv2.waitKey(1) == 27:
+        #     break
+
+
     # img = get_frame()
     # # y_len = len(img)
     # # x_len = len(img[0])
@@ -33,7 +60,7 @@ def main():
     # ax.pcolorfast(mono_img, cmap='RdBu')
     # plt.show()
 
-    print(get_devicelist())
+    # print(get_devicelist())
 
 
 
@@ -62,10 +89,147 @@ def show_webcam():
             break
 
 
-def get_frame():
-    cam = cv2.VideoCapture(1)
-    ret_val, img = cam.read()
+def get_frame(camera, color='RGB'):
+    """
+        returns a single frame taken from given webcam.
+    :param camera: cv2.VideoCapture()
+        camera from which to take frame
+    :return: np.array BGR
+
+    """
+    ret_val, img = camera.read()
+    set_pixel_coloring(img, color=color)
     return img
+
+
+def get_devicelist():
+    """ Returns a dictionary of device names with corresponding port value and max resolution"""
+    try:
+        from VideoCapture import Device
+        useVC = True
+    except ImportError:
+        useVC = False
+        print('VideoCapture is not correctly installed. No device name can be obtained')
+    devices = {}
+    for i in range(10):
+        try:
+            import vidcap
+            if useVC:
+                dev = Device(i)
+                dev_name = dev.getDisplayName()
+                devices[dev_name] = {'port': i}
+                del dev
+            else:
+                dev_name = 'camera{}'.format(i)
+
+            devices[dev_name] = {}
+            cam = cv2.VideoCapture(i)
+            cam.set(cv2.CAP_PROP_FRAME_WIDTH, 5000)  # force maximum resolution by overshooting
+            cam.set(cv2.CAP_PROP_FRAME_HEIGHT, 5000)  # force maximum resolution by overshooting
+            w = cam.get(cv2.CAP_PROP_FRAME_WIDTH)
+            h = cam.get(cv2.CAP_PROP_FRAME_HEIGHT)
+            devices[dev_name]['resolution'] = [w, h]
+            devices[dev_name]['port'] = i
+            del cam
+        except vidcap.error:
+            break
+    return devices
+
+
+def recolor_bgr2rgb(img):
+    """
+        transform an array of BGR pixels to RGB
+    :param img: np.array
+        np array from camera, as x, y, z, with z a tuple of 3 representing BGR color
+    :return: np.array
+        np array from camera, as x, y, z, with z a tuple of 3 representing RGB color
+    """
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    return img
+
+
+def get_weighted_frame(camera, alpha, color='RGB'):
+    """
+        Obtain an averaged frame from a webcam, with
+    :param camera: cv2.VideoCapture()
+        Camera object created with cv2.VideoCapture('camera_index')
+    :param alpha: float [0:1]
+        defines persistence of background. In other words, how long before a frame is forgotten (1 = never)
+    :param color : string
+        defines output pixel data
+        possible values: 'RGB', 'BGR', 'avg', 'r', 'g', 'b',
+            'BGR' - no transformation, image given as BGR color coding
+            'RGB' - transforms color coding into RGB
+            'sum' - averages all colors and returns single value per pixel
+            'r' - returns only red channel
+            'g' - returns only green channel
+            'b' - returns only blue channel
+    :return: np.array
+        array of pixels with data as defined by color method
+    """
+    _, frame = camera.read()
+    avg_img = np.float64(frame)
+    # if color in ['avg','r','g','b']:
+    #     mono_img = np.float32([np.size(frame,0),np.size(frame,1)])
+
+    cv2.accumulateWeighted(frame, avg_img, alpha)
+    out_img = set_pixel_coloring(avg_img,color=color)
+    return out_img
+
+def set_pixel_coloring(img,color='RGB'):
+    """
+
+    :param img: np.array
+        array of input pixels, in BGR format.
+    :param color : string
+        defines output pixel data
+        possible values: 'RGB', 'BGR', 'avg', 'r', 'g', 'b',
+            'BGR' - no transformation, image given as BGR color coding
+            'RGB' - transforms color coding into RGB
+            'sum' - averages all colors and returns single value per pixel
+            'r' - returns only red channel
+            'g' - returns only green channel
+            'b' - returns only blue channel
+    :return: np.array
+        array of pixels with data as defined by color method.
+    """
+    if color == 'BGR':
+        return img
+    elif color == 'RGB':
+        avg_img = recolor_bgr2rgb(img)
+        return avg_img
+    elif color == 'avg':
+        mono_img = (img[:, :, 0] + img[:, :, 1] + img[:, :, 2]) / 3
+    elif color == 'r':
+        mono_img = img[:, :, 2]
+    elif color == 'g':
+        mono_img = img[:, :, 1]
+    elif color == 'b':
+        mono_img = img[:, :, 0]
+    else:
+        raise TypeError("invalid color definition, please use one of: 'RGB','BGR','avg','r','g','b'")
+    return mono_img
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 class CamView(qw.QWidget):
@@ -156,8 +320,8 @@ class CamView(qw.QWidget):
             n += 1
             _, f = self.cam.read()
             cv2.accumulateWeighted(f, avg_img, 0.1)
-
         return avg_img
+
 
     def refresh_frame(self, color='all'):
         t_0 = time.time()
