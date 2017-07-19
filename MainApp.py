@@ -11,7 +11,8 @@ import cv2
 from BeamProfilerLib.BeamProfilerUI import Ui_MainWindow
 from BeamProfilerLib.gui import get_frame, get_devicelist, get_weighted_frame
 from BeamProfilerLib import genericfunctions as gfs
-
+import time
+import numpy as np
 
 def main_old():
     app = qw.QApplication(sys.argv)
@@ -48,7 +49,9 @@ def my_exception_hook(exctype, value, traceback):
 
 
 class BeamProfilerMainApp(qw.QMainWindow, Ui_MainWindow):
+
     CAMERA_INDEX = 1
+    FPS_REFRESH_RATE = 10
 
     def __init__(self):
         super(BeamProfilerMainApp, self).__init__()
@@ -62,6 +65,7 @@ class BeamProfilerMainApp(qw.QMainWindow, Ui_MainWindow):
         self.timer.setInterval(10)
         self.timer.timeout.connect(self.on_timer)
         self.frame = None
+        self.fps = []
         self.camera = cv2.VideoCapture(self.CAMERA_INDEX)
 
         self.show()
@@ -88,17 +92,25 @@ class BeamProfilerMainApp(qw.QMainWindow, Ui_MainWindow):
 
     @qc.pyqtSlot()
     def on_timer(self):
+        t0 = time.time()
         self.refresh_videoframe()
-
+        t1 = time.time()
+        self.fps.append(1/(t1-t0))
+        if len(self.fps) == self.FPS_REFRESH_RATE:
+            fps = np.average(self.fps)
+            self.fps_LCD.display(int(fps))
+            self.fps = []
     def refresh_videoframe(self, _return=False):  # todo: work on this
         # frame = get_frame(self.camera, color='RGB')
-        alpha = self.alpha_persistence_slide.value()
+        t0 = time.time()
+        alpha = self.alpha_persistence_slide.value()/10
         self.frame = get_weighted_frame(self.camera, alpha=alpha, color='RGB')
         if len(self.frame[0][0]) == 3:
             self.cam_window.setImage(self.frame, axes={'x': 1, 'y': 0, 'c': 2})
         else:
             print(len(self.frame[0][0]))
             self.cam_window.setImage(self.frame, axes={'x': 1, 'y': 0})
+
         if _return:
             return self.frame
 
