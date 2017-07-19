@@ -16,9 +16,8 @@ from PyQt5 import QtWidgets as qw, QtCore as qc, QtGui as qg
 import time
 import VideoCapture
 
+
 def main():
-
-
     cam = cv2.VideoCapture(1)
     fig = plt.figure('color channels')
     ax1 = fig.add_subplot(221)
@@ -40,10 +39,10 @@ def main():
     #     # RGB = get_weighted_frame(cam, 0.5, color='RGB')
     #     canvas.setImage(r)
 
-        # cv2.imshow('color BGR',BGR)
-        # cv2.imshow('frame',frame)
-        # if cv2.waitKey(1) == 27:
-        #     break
+    # cv2.imshow('color BGR',BGR)
+    # cv2.imshow('frame',frame)
+    # if cv2.waitKey(1) == 27:
+    #     break
 
 
     # img = get_frame()
@@ -63,8 +62,6 @@ def main():
     # print(get_devicelist())
 
 
-
-
 def show_webcam():
     temp_name = VideoCapture.Device(2).getDisplayName()
     name = temp_name
@@ -79,11 +76,11 @@ def show_webcam():
 
         y_len = len(img)
         x_len = len(img[0])
-        mono_img = np.ones([y_len,x_len])
+        mono_img = np.ones([y_len, x_len])
         # for i in range(y_len):
         #     for j in range(x_len):
         #         mono_img[i][j] = img.item(i,j,1)
-        mono_img = (img[:,:,0] + img[:,:,1] + img[:,:,2])
+        mono_img = (img[:, :, 0] + img[:, :, 1] + img[:, :, 2])
         cv2.imshow('logitech webcam', mono_img)
         if cv2.waitKey(1) == 27:
             break
@@ -168,15 +165,16 @@ def get_weighted_frame(camera, alpha, color='RGB'):
         array of pixels with data as defined by color method
     """
     _, frame = camera.read()
-    avg_img = np.float64(frame)
+    avg_img = np.float32(frame)
     # if color in ['avg','r','g','b']:
     #     mono_img = np.float32([np.size(frame,0),np.size(frame,1)])
 
     cv2.accumulateWeighted(frame, avg_img, alpha)
-    out_img = set_pixel_coloring(avg_img,color=color)
+    out_img = set_pixel_coloring(avg_img, color=color)
     return out_img
 
-def set_pixel_coloring(img,color='RGB'):
+
+def set_pixel_coloring(img, color='RGB'):
     """
 
     :param img: np.array
@@ -193,17 +191,16 @@ def set_pixel_coloring(img,color='RGB'):
     :return: np.array
         array of pixels with data as defined by color method.
     """
-    h = np.size(img, 0)
-    w = np.size(img, 1)
-    mono_img = np.float32([h,w])
+    # h = np.size(img, 0)
+    # w = np.size(img, 1)
+    # mono_img = np.float32([h, w])
 
     if color == 'BGR':
         return img
     elif color == 'RGB':
-        img = recolor_bgr2rgb(img)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         return img
     elif color == 'avg':
-
         mono_img = (img[:, :, 0] + img[:, :, 1] + img[:, :, 2]) / 3
     elif color == 'r':
         mono_img = img[:, :, 2]
@@ -216,36 +213,14 @@ def set_pixel_coloring(img,color='RGB'):
     return mono_img
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 class CamView(qw.QWidget):
     """ main Widget showing simple video from camera."""
 
     # Parameters:
 
     CAMERA = 1
-    CAM_RESOLUTION = [480,640]  # as [y,x]
+    CAM_RESOLUTION = [480, 640]  # as [y,x]
     AVERAGES = 4
-
 
     def __init__(self):
         super(CamView, self).__init__()
@@ -257,7 +232,7 @@ class CamView(qw.QWidget):
         self.camWindow = pg.ImageView()
         layout.addWidget(self.camWindow, 0, 2, 3, 4)
         self.camWindow.setImage(self.gauss_img)
-        colors = [(0, 0, 0),(255, 255, 255)]
+        colors = [(0, 0, 0), (255, 255, 255)]
         cmap = pg.ColorMap(pos=np.linspace(0.0, 1.0, 2), color=colors)
         self.camWindow.setColorMap(cmap)
 
@@ -276,20 +251,15 @@ class CamView(qw.QWidget):
         self.devices = {}
         self.get_devicelist()
 
-
         self.fps_display = qw.QLabel('0')
-        layout.addWidget(self.fps_display, 1,1)
-
-
+        layout.addWidget(self.fps_display, 1, 1)
 
         self.fps = 0
-
 
         self.timer = qc.QTimer()
         self.timer.setInterval(1)
         self.timer.timeout.connect(self.on_timer)
         self.timer.start()
-
 
         self.cam = cv2.VideoCapture(self.CAMERA)
 
@@ -327,7 +297,6 @@ class CamView(qw.QWidget):
             cv2.accumulateWeighted(f, avg_img, 0.1)
         return avg_img
 
-
     def refresh_frame(self, color='all'):
         t_0 = time.time()
         average = True
@@ -339,14 +308,13 @@ class CamView(qw.QWidget):
 
         if color == 'all':
             frame = self.bgr2rgb(frame)
-            self.camWindow.setImage(frame, axes={'x': 1, 'y': 0, 'c':2})  # transpose the matrix to rotate correctly the image
+            self.camWindow.setImage(frame,
+                                    axes={'x': 1, 'y': 0, 'c': 2})  # transpose the matrix to rotate correctly the image
         else:
             fig = self.get_intensity_array(frame, color=color)
-            self.camWindow.setImage(fig, axes={'x':1, 'y':0})  # transpose the matrix to rotate correctly the image
+            self.camWindow.setImage(fig, axes={'x': 1, 'y': 0})  # transpose the matrix to rotate correctly the image
 
-        self.fps = (1 / (time.time() - t_0 ))
-
-
+        self.fps = (1 / (time.time() - t_0))
 
     @staticmethod
     def get_devicelist():
@@ -381,8 +349,6 @@ class CamView(qw.QWidget):
             except vidcap.error:
                 break
         return devices
-
-
 
     @staticmethod
     def get_intensity_array(img, size=CAM_RESOLUTION, color='all'):
