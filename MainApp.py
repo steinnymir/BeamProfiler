@@ -9,10 +9,11 @@ import sys
 from PyQt5 import QtWidgets as qw, QtCore as qc, uic
 import cv2
 from BeamProfilerLib.BeamProfilerUI import Ui_MainWindow
-from BeamProfilerLib.gui import get_frame, get_devicelist, get_weighted_frame
+from BeamProfilerLib.gui import get_frame, get_devicelist, accumulate_frames, set_pixel_coloring
 from BeamProfilerLib import genericfunctions as gfs
 import time
 import numpy as np
+import pyqtgraph as pg
 
 def main_old():
     app = qw.QApplication(sys.argv)
@@ -64,9 +65,17 @@ class BeamProfilerMainApp(qw.QMainWindow, Ui_MainWindow):
         self.timer = qc.QTimer()
         self.timer.setInterval(10)
         self.timer.timeout.connect(self.on_timer)
+        self.timer.start()
         self.frame = None
         self.fps = []
         self.camera = cv2.VideoCapture(self.CAMERA_INDEX)
+        self.camera_is_on = False
+
+
+
+
+        # setup pyqtgraph
+        pg.setConfigOptions(antialias=True)
 
         self.show()
 
@@ -85,6 +94,10 @@ class BeamProfilerMainApp(qw.QMainWindow, Ui_MainWindow):
         self.timer.stop()
         self.camera_name = self.select_device_combobox.currentText()
         self.CAMERA_INDEX = self.devicedict[self.camera_name]['port']
+        resolution = self.devicedict[self.camera_name]['resolution']
+        self.resolution_x_text.setText(str(int(resolution[0])))
+        self.resolution_y_text.setText(str(int(resolution[1])))
+        self.average_frame = np.float32(resolution)
         print('using camera {0} - {1}'.format(self.CAMERA_INDEX, self.camera_name))
         print(self.select_device_combobox.currentText())
         self.init_camera()
@@ -92,19 +105,32 @@ class BeamProfilerMainApp(qw.QMainWindow, Ui_MainWindow):
 
     @qc.pyqtSlot()
     def on_timer(self):
+
         t0 = time.time()
-        self.refresh_videoframe()
+        if self.camera_is_on:
+            self.refresh_videoframe()
         t1 = time.time()
-        self.fps.append(1/(t1-t0))
+
+        try:
+            self.fps.append(1./(t1-t0))
+        except ZeroDivisionError:
+            pass
         if len(self.fps) == self.FPS_REFRESH_RATE:
             fps = np.average(self.fps)
             self.fps_LCD.display(int(fps))
             self.fps = []
+
+
+
+
     def refresh_videoframe(self, _return=False):  # todo: work on this
         # frame = get_frame(self.camera, color='RGB')
-        t0 = time.time()
-        alpha = self.alpha_persistence_slide.value()/10
-        self.frame = get_weighted_frame(self.camera, alpha=alpha, color='RGB')
+        # if self.alpha_radiobutton.isChecked():
+        #     alpha = self.alpha_persistence_slide.value()/10
+        #     self.frame = accumulate_frames(self.camera, self.average_frame, method='accumulateSquare', alpha=alpha)
+        # else:
+        self.frame = get_frame(self.camera, color='RGB')
+
         if len(self.frame[0][0]) == 3:
             self.cam_window.setImage(self.frame, axes={'x': 1, 'y': 0, 'c': 2})
         else:
@@ -129,7 +155,13 @@ class BeamProfilerMainApp(qw.QMainWindow, Ui_MainWindow):
     @qc.pyqtSlot()
     def startstop_videostream(self):
         print('it works: start aquisition')
-        self.timer.start()
+        self.camera_is_on = not self.camera_is_on
+        #
+        # if self.camera_is_on:
+        #     self.camera_is_on = False
+        # else:
+        #     self.camera_is_on = True
+        #
         print('Timer Started')
 
 if __name__ == "__main__":

@@ -24,19 +24,19 @@ def main():
     ax2 = fig.add_subplot(222)
     ax3 = fig.add_subplot(223)
     ax4 = fig.add_subplot(224)
-    r, frame = get_weighted_frame(cam, 0.5, color='r')
+    r, frame = accumulate_frames(cam, 0.5, color='r')
     pg.image(frame)
     # while True:
-    #     r, frame = get_weighted_frame(cam, 0.5,color='r')
+    #     r, frame = accumulate_frames(cam, 0.5,color='r')
     #     # ax1.pcolorfast(r)
-    #     g, _ = get_weighted_frame(cam, 0.5, color='g')
+    #     g, _ = accumulate_frames(cam, 0.5, color='g')
     #     # ax2.pcolorfast(g)
-    #     b, _ = get_weighted_frame(cam, 0.5, color='b')
+    #     b, _ = accumulate_frames(cam, 0.5, color='b')
     #     # ax3.pcolorfast(b)
-    #     avg, _ = get_weighted_frame(cam, 0.5, color='avg')
+    #     avg, _ = accumulate_frames(cam, 0.5, color='avg')
     #     # ax4.pcolorfast(avg)
-    #     # BGR = get_weighted_frame(cam, 0.5, color='BGR')
-    #     # RGB = get_weighted_frame(cam, 0.5, color='RGB')
+    #     # BGR = accumulate_frames(cam, 0.5, color='BGR')
+    #     # RGB = accumulate_frames(cam, 0.5, color='RGB')
     #     canvas.setImage(r)
 
     # cv2.imshow('color BGR',BGR)
@@ -121,8 +121,8 @@ def get_devicelist():
 
             devices[dev_name] = {}
             cam = cv2.VideoCapture(i)
-            cam.set(cv2.CAP_PROP_FRAME_WIDTH, 5000)  # force maximum resolution by overshooting
-            cam.set(cv2.CAP_PROP_FRAME_HEIGHT, 5000)  # force maximum resolution by overshooting
+            cam.set(cv2.CAP_PROP_FRAME_WIDTH, 800)  # force maximum resolution by overshooting
+            cam.set(cv2.CAP_PROP_FRAME_HEIGHT, 600)  # force maximum resolution by overshooting
             w = cam.get(cv2.CAP_PROP_FRAME_WIDTH)
             h = cam.get(cv2.CAP_PROP_FRAME_HEIGHT)
             devices[dev_name]['resolution'] = [w, h]
@@ -145,7 +145,7 @@ def recolor_bgr2rgb(img):
     return img_new
 
 
-def get_weighted_frame(camera, alpha, color='RGB'):
+def accumulate_frames(camera, averaged_image,  method='accumulate', alpha='1'):
     """
         Obtain an averaged frame from a webcam, with
     :param camera: cv2.VideoCapture()
@@ -164,14 +164,21 @@ def get_weighted_frame(camera, alpha, color='RGB'):
     :return: np.array
         array of pixels with data as defined by color method
     """
-    _, frame = camera.read()
-    avg_img = np.float32(frame)
-    # if color in ['avg','r','g','b']:
-    #     mono_img = np.float32([np.size(frame,0),np.size(frame,1)])
 
-    cv2.accumulateWeighted(frame, avg_img, alpha)
-    out_img = set_pixel_coloring(avg_img, color=color)
-    return out_img
+    _, frame = camera.read()
+    # avg_img = np.float32(frame)
+    if method == 'accumulate':
+        cv2.accumulate(frame, averaged_image)
+    elif method == 'accumulateWeighted':
+        cv2.accumulateWeighted(frame, averaged_image, alpha)
+    elif method == 'accumulateProduct':
+        cv2.accumulateProduct(frame, averaged_image, alpha)
+    elif method == 'accumulateSquare':
+        cv2.accumulateSquare(frame, averaged_image, alpha)
+    else:
+        raise ValueError(
+            'Unknown accumulation method, please use one of: \n\taccumulate \n\taccumulateSquare \n\taccumulateProduct, \n\taccumulateWeighted')
+    return averaged_image
 
 
 def set_pixel_coloring(img, color='RGB'):
