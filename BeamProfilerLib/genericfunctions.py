@@ -65,3 +65,10 @@ def save_obj(obj, name):
 def load_obj(name):
     with open('obj/' + name + '.pkl', 'rb') as f:
         return pickle.load(f)
+
+def dictprint(dictionary):
+
+    for x in dictionary:
+        print(x)
+        for y in dictionary[x]:
+            print(y, ':', dictionary[x][y])

@@ -52,7 +52,7 @@ def my_exception_hook(exctype, value, traceback):
 class BeamProfilerMainApp(qw.QMainWindow, Ui_MainWindow):
 
     CAMERA_INDEX = 1
-    FPS_REFRESH_RATE = 10
+    FPS_REFRESH_RATE = 1
 
     def __init__(self):
         super(BeamProfilerMainApp, self).__init__()
@@ -62,10 +62,10 @@ class BeamProfilerMainApp(qw.QMainWindow, Ui_MainWindow):
         self.devicedict = {}
         self.init_devices()
 
-        self.timer = qc.QTimer()
-        self.timer.setInterval(10)
-        self.timer.timeout.connect(self.on_timer)
-        self.timer.start()
+        self.video_timer = qc.QTimer()
+        self.video_timer.setInterval(10)
+        self.video_timer.timeout.connect(self.on_video_timer)
+        self.video_timer.start()
         self.frame = None
         self.fps = []
         self.camera = cv2.VideoCapture(self.CAMERA_INDEX)
@@ -91,20 +91,24 @@ class BeamProfilerMainApp(qw.QMainWindow, Ui_MainWindow):
 
     @qc.pyqtSlot()
     def select_device(self):
-        self.timer.stop()
+        self.video_timer.stop()
+        time.sleep(0.1)
+
         self.camera_name = self.select_device_combobox.currentText()
+
         self.CAMERA_INDEX = self.devicedict[self.camera_name]['port']
         resolution = self.devicedict[self.camera_name]['resolution']
+        gfs.dictprint(self.devicedict)
         self.resolution_x_text.setText(str(int(resolution[0])))
         self.resolution_y_text.setText(str(int(resolution[1])))
         self.average_frame = np.float32(resolution)
         print('using camera {0} - {1}'.format(self.CAMERA_INDEX, self.camera_name))
         print(self.select_device_combobox.currentText())
         self.init_camera()
-        self.timer.start()
+        self.video_timer.start()
 
     @qc.pyqtSlot()
-    def on_timer(self):
+    def on_video_timer(self):
 
         t0 = time.time()
         if self.camera_is_on:

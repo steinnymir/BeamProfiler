@@ -95,9 +95,9 @@ def get_frame(camera, color='RGB'):
 
     """
     ret_val, img = camera.read()
-    img_recolored = set_pixel_coloring(img, color=color)
-    return img_recolored
-
+    # img_recolored = set_pixel_coloring(img, color=color)
+    # return img_recolored
+    return img
 
 def get_devicelist():
     """ Returns a dictionary of device names with corresponding port value and max resolution"""
@@ -121,12 +121,27 @@ def get_devicelist():
 
             devices[dev_name] = {}
             cam = cv2.VideoCapture(i)
-            cam.set(cv2.CAP_PROP_FRAME_WIDTH, 800)  # force maximum resolution by overshooting
-            cam.set(cv2.CAP_PROP_FRAME_HEIGHT, 600)  # force maximum resolution by overshooting
+            cam.set(cv2.CAP_PROP_FRAME_WIDTH, 5000)  # force maximum resolution by overshooting
+            cam.set(cv2.CAP_PROP_FRAME_HEIGHT, 5000)  # force maximum resolution by overshooting
+            cam.set(cv2.CAP_PROP_CONVERT_RGB, 1)
             w = cam.get(cv2.CAP_PROP_FRAME_WIDTH)
             h = cam.get(cv2.CAP_PROP_FRAME_HEIGHT)
+
+            devices[dev_name]['fps'] = cam.get(cv2.CAP_PROP_FPS)
             devices[dev_name]['resolution'] = [w, h]
             devices[dev_name]['port'] = i
+            devices[dev_name]['format'] = cam.get(cv2.CAP_PROP_FORMAT)
+            devices[dev_name]['mode'] = cam.get(cv2.CAP_PROP_MODE)
+            devices[dev_name]['buffersize'] = cam.get(cv2.CAP_PROP_BUFFERSIZE)
+            devices[dev_name]['fourcc'] = cam.get(cv2.CAP_PROP_FOURCC)
+            devices[dev_name]['brightness'] = cam.get(cv2.CAP_PROP_BRIGHTNESS)
+            devices[dev_name]['contrast'] = cam.get(cv2.CAP_PROP_CONTRAST)
+            devices[dev_name]['saturation'] = cam.get(cv2.CAP_PROP_SATURATION)
+            devices[dev_name]['hue'] = cam.get(cv2.CAP_PROP_HUE)
+            devices[dev_name]['gain'] = cam.get(cv2.CAP_PROP_GAIN)
+            devices[dev_name]['exposure'] = cam.get(cv2.CAP_PROP_EXPOSURE)
+            devices[dev_name]['convertRGB'] = cam.get(cv2.CAP_PROP_CONVERT_RGB)
+
             del cam
         except vidcap.error:
             break
@@ -410,6 +425,8 @@ class CamView(qw.QWidget):
             qw.QApplication.processEvents()
             if cv2.waitKey(1) == 27:
                 break
+
+
 
 
 if __name__ == '__main__':
