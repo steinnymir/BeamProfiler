@@ -49,12 +49,14 @@ def choose_save_filename(initialdir='E://'):
 
 
 def file_creation_date(file):
+    """ returns date and time of creation of the given file.
+    works on windows"""
     return datetime.fromtimestamp(
         int(os.path.getmtime(file))).strftime('%Y-%m-%d-%H.%M.%S')
 
 
 def save_obj(obj, name):
-
+    """ save pickle of the object given. extension given is .pkl"""
     try:
         with open('obj/' + name + '.pkl', 'wb') as f:
             pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
@@ -63,12 +65,14 @@ def save_obj(obj, name):
             pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
 
 def load_obj(name):
+    """ load pickle from given file. extension required is .pkl"""
+
     with open('obj/' + name + '.pkl', 'rb') as f:
         return pickle.load(f)
 
 def dictprint(dictionary):
-
+    """ print dictionary in more readable manner"""
     for x in dictionary:
         print(x)
         for y in dictionary[x]:
-            print(y, ':', dictionary[x][y])
+            print('- ',y, ':', dictionary[x][y])
