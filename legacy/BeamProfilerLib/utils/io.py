@@ -1,8 +1,12 @@
-
-import pickle
-from tkinter import Tk, filedialog
-from datetime import datetime
 import os
+import pickle
+import sys
+from datetime import datetime
+from tkinter import Tk, filedialog
+
+import matplotlib.pyplot as plt
+import numpy as np
+
 
 def choose_folder(initialdir='E://'):
     '''dialog box for folder selection
@@ -64,15 +68,26 @@ def save_obj(obj, name):
         with open(name + '.pkl', 'wb') as f:
             pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
 
+
 def load_obj(name):
     """ load pickle from given file. extension required is .pkl"""
 
     with open('obj/' + name + '.pkl', 'rb') as f:
         return pickle.load(f)
 
-def dictprint(dictionary):
+
+def print_dict(dictionary):
     """ print dictionary in more readable manner"""
     for x in dictionary:
         print(x)
         for y in dictionary[x]:
-            print('- ',y, ':', dictionary[x][y])
+            print('- ', y, ':', dictionary[x][y])
+
+
+def my_exception_hook(exctype, value, traceback):
+    # Print the error and traceback
+    print(exctype, value, traceback)
+    # Call the normal Exception hook after
+    sys._excepthook(exctype, value, traceback)
+    sys.exit(1)
+

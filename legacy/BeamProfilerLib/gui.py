@@ -14,7 +14,7 @@ import cv2
 import pyqtgraph as pg
 from PyQt5 import QtWidgets as qw, QtCore as qc, QtGui as qg
 import time
-import VideoCapture
+# import VideoCapture
 
 
 def main():
@@ -24,7 +24,7 @@ def main():
     ax2 = fig.add_subplot(222)
     ax3 = fig.add_subplot(223)
     ax4 = fig.add_subplot(224)
-    r, frame = accumulate_frames(cam, 0.5, color='r')
+    r, frame = accumulate_frames(cam, 0.5)#, color='r')
     pg.image(frame)
     # while True:
     #     r, frame = accumulate_frames(cam, 0.5,color='r')
