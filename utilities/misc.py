@@ -21,11 +21,11 @@
 """
 import numpy as np
 import scipy.optimize as opt
-
+import cv2
 
 def make_2d_gaussian_img(size=(600, 800), seed=None, noise=1,
                          amplitude=None, xo=None, yo=None, sigma_x=None, sigma_y=None, theta=None, offset=None,
-                         return_moments=False, moments=None):
+                         return_moments=False, moments=None,force_roundish=False):
     lenx = size[1]
     leny = size[0]
     x = np.linspace(0, lenx - 1, lenx)
@@ -52,6 +52,11 @@ def make_2d_gaussian_img(size=(600, 800), seed=None, noise=1,
         theta = float(np.random.rand(1)) * np.pi
     if offset is None:
         offset = float(np.random.rand(1))
+
+    if force_roundish:
+        sigma_x = sigma_y = (sigma_x+sigma_y)/2
+        sigma_x += float(np.random.rand(1)-.5)/(10*sigma_x)
+        sigma_y += float(np.random.rand(1)-.5)/(10*sigma_y)
 
     g = gauss_2d((x, y), amplitude, xo, yo, sigma_x, sigma_y, theta, offset)
     g += noise
@@ -109,29 +114,28 @@ def fit_2d_gaussian(img, guess=None, bounds=None):
     popt[2] += yo - sy
     return popt, perr
 
-def simulate_peaks(moments=None):
+
+def simulate_peaks(moments=None, pos_change=20, moment_change=50, force_roundish=True):
     if moments is None:
-        frame, moments = make_2d_gaussian_img(return_moments=True)
+        frame, moments = make_2d_gaussian_img(return_moments=True,force_roundish=force_roundish)
         return frame, moments
     else:
         new_moments = []
         for i, par in enumerate(moments):
             if i in [1,2]:
-                new_moments.append(par + np.random.randn()*par/50)
+                new_moments.append(par + np.random.randn()*par/moment_change)
             else:
-                new_moments.append(par + np.random.randn()*par/20)
+                new_moments.append(par + np.random.randn()*par/pos_change)
 
-        frame = make_2d_gaussian_img(moments=new_moments)
+        frame = make_2d_gaussian_img(moments=new_moments,force_roundish=force_roundish)
     return frame, new_moments
+
 
 def make_meshgrid(lenx,leny):
     x = np.linspace(0, lenx - 1, lenx)
     y = np.linspace(0, leny - 1, leny)
     x, y = np.meshgrid(x, y)
     return x,y
-
-
-
 
 
 def _timing_test():
@@ -153,6 +157,8 @@ def _timing_test():
         print('it took: {}'.format(times[-1]))
     times = np.array(times)
     print('--------------\nmean: {}\nmin: {}\nmax: {}'.format(times.mean(), times.min(), times.max()))
+
+
 
 
 if __name__ == '__main__':

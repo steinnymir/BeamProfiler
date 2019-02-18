@@ -20,7 +20,14 @@
 
 """
 import sys
+import numpy as np
 from PyQt5 import QtWidgets, uic
+
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.figure import Figure
+import matplotlib.pyplot as plt
+
+
 
 def raise_Qerror(doingWhat, errorHandle, type='Warning', popup=True):
     """ opens a dialog window showing the error"""
@@ -47,6 +54,54 @@ def recompile(folder):
     print('recompiling')
     uic.compileUiDir(folder, execute=True)
     print('done')
+
+
+class PlotCanvas(FigureCanvas):
+
+    def __init__(self, parent=None, width=6, height=6, dpi=100):
+        fig = Figure(figsize=(width, height), dpi=dpi)
+
+        FigureCanvas.__init__(self, fig)
+        self.setParent(parent)
+
+        FigureCanvas.setSizePolicy(self,
+                                   QtWidgets.QSizePolicy.Expanding,
+                                   QtWidgets.QSizePolicy.Expanding)
+        FigureCanvas.updateGeometry(self)
+
+        self.draw_figure()
+
+    def draw_figure(self):
+        plt.style.use('default')
+        plt.style.use('seaborn-paper')
+        self.mainax = self.figure.add_axes([.05, .30, .65, .65], xticklabels=[], yticklabels=[])
+        self.xax = self.figure.add_axes([.05, .05, .65, .20], yticklabels=[])
+        self.yax = self.figure.add_axes([.75, .30, .20, .65], xticklabels=[])
+        self.yax.yaxis.tick_right()
+        for ax in [self.mainax, self.xax, self.yax]:
+            ax.tick_params(axis="both", direction="in", bottom=True, top=True, left=True, right=True, which='both')
+        self.xax.xaxis.set_ticks_position('both')
+        self.xax.xaxis.set_label_position("bottom")
+        self.yax.yaxis.set_ticks_position('both')
+        self.yax.yaxis.set_label_position("right")
+
+
+    def draw_fit_result(self,xx,yy,data,fit_data, n_levels, colors='w'):
+        lenx, leny = xx.shape
+        x = np.linspace(0,lenx-1,lenx)
+        y = np.linspace(0,leny-1,leny)
+        self.mainax.cla()
+        self.xax.cla()
+        self.yax.cla()
+        self.mainax.imshow(data)
+        self.mainax.contour(xx, yy, fit_data, n_levels, colors=colors)
+        self.xax.plot(x, data.sum(axis=0))
+        self.xax.plot(x, fit_data.sum(axis=0))
+        self.yax.plot(-data.sum(axis=1),y)
+        self.yax.plot(-fit_data.sum(axis=1),y)
+        self.draw()
+
+
 
 def main():
     pass
