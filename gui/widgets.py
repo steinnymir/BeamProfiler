@@ -108,7 +108,7 @@ class BeamProfilerMainApp(QMainWindow):
         self.controlbox_layout.addWidget(self.fit_checkbox, 1, 0, 1, 1)
         self.fit_button = QPushButton('force refit')
         self.controlbox_layout.addWidget(self.fit_button, 1, 1, 1, 1)
-        self.fit_button.clicked.connect(self.fit_peaks)
+        self.fit_button.clicked.connect(self.force_refit_peaks)
 
         self.resultsbox = QGroupBox('Fit Results')
         self.main_layout.addWidget(self.resultsbox, 1, 3, 1, 2)
@@ -153,9 +153,15 @@ class BeamProfilerMainApp(QMainWindow):
             if self.fit_checkbox.isChecked():
                 self.fit_peaks()
 
-    def fit_peaks(self):
+    def fit_peaks(self,guess=None,bounds=None):
+        if guess == 'random':
+            if self.peak_moments is None:
+                guess = None
+            else:
+                for par in self.peak_moments:
+                    guess = par * np.random.uniform(.9,1.1)
         try:
-            self.peak_moments, perr = misc.fit_2d_gaussian(self.frame)
+            self.peak_moments, perr = misc.fit_2d_gaussian(self.frame,guess=guess,bounds=bounds)
             l = []
             for a in zip(['Amplitude', 'X center', 'Y Center', 'sigma X', 'sigma Y', 'Theta', 'Offset'],
                          self.peak_moments):
@@ -172,6 +178,9 @@ class BeamProfilerMainApp(QMainWindow):
             self.draw_fit_frame(self.frame)
         except:
             self.status_bar.showMessage('Fitting Failed. No peak detected')
+
+    def force_refit_peaks(self):
+        self.fit_peaks(guess='random')
 
     def draw_cam_frame(self, frame):
         print('drawing')

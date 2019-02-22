@@ -3,3 +3,4 @@ numpy==1.16.1
 opencv-python==4.0.0.21
 PyQt5==5.12
 pyqtgraph==0.10.0
+scipy

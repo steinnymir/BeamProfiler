@@ -93,8 +93,11 @@ def fit_2d_gaussian(img, guess=None, bounds=None):
         yo, xo = find_maxima(img)
         amplitude = img[yo, xo]
         g = [amplitude, xo, yo, 15, 15, np.pi, 1]
+    else:
+        g = guess
     xo, yo = g[1], g[2]
     sx, sy = 2*g[3], 2*g[4]
+
 
     #     zoom_img = img[g[2]-g[4]:g[2]+g[4],g[1]-g[3]:g[1]+g[3]]
     zoom_img = img[yo - sy:yo + sy, xo - sx:xo + sx]
